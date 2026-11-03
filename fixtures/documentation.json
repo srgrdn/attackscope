@@ -1,0 +1,9 @@
+[
+  {"source_reference":"documentation:v1:aws-credentials","offset_seconds":0,"payload":{"remote_addr":"198.51.100.42","request_method":"GET","path":"/.aws/credentials","status":307,"hostname":"demo-web","dst_port":443,"user_agent":"Documentation scanner"}},
+  {"source_reference":"documentation:v1:aws-config","offset_seconds":10,"payload":{"remote_addr":"198.51.100.42","request_method":"GET","path":"/.aws/config","status":307,"hostname":"demo-web","dst_port":443,"user_agent":"Documentation scanner"}},
+  {"source_reference":"documentation:v1:azure","offset_seconds":20,"payload":{"remote_addr":"198.51.100.42","request_method":"GET","path":"/.azure/credentials","status":307,"hostname":"demo-web","dst_port":443,"user_agent":"Documentation scanner"}},
+  {"source_reference":"documentation:v1:gcloud","offset_seconds":30,"payload":{"remote_addr":"198.51.100.42","request_method":"GET","path":"/.config/gcloud/application_default_credentials.json","status":307,"hostname":"demo-web","dst_port":443,"user_agent":"Documentation scanner"}},
+  {"source_reference":"documentation:v1:docker","offset_seconds":40,"payload":{"remote_addr":"198.51.100.42","request_method":"GET","path":"/.docker/config.json","status":404,"hostname":"demo-web","dst_port":443,"user_agent":"Documentation scanner"}},
+  {"source_reference":"documentation:v1:env","offset_seconds":50,"payload":{"remote_addr":"198.51.100.42","request_method":"GET","path":"/.env.production?example=discarded","status":404,"hostname":"demo-web","dst_port":443,"user_agent":"Documentation scanner"}},
+  {"source_reference":"documentation:v1:operator","offset_seconds":70,"payload":{"remote_addr":"192.0.2.44","request_method":"GET","path":"/","status":200,"hostname":"demo-web","dst_port":443,"user_agent":"AttackScope operator delivery check documentation"}}
+]

@@ -1,0 +1,69 @@
+name: CI
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Validate Compose
+        run: |
+          docker compose config --quiet
+          docker compose --env-file deploy/docs.env.example -p attackscope-docs -f compose.yaml -f deploy/compose.docs.yaml config --quiet
+      - name: Documentation links and screenshot integrity
+        run: python3 scripts/check_docs.py
+      - name: Publication file policy
+        run: python3 scripts/check_publication.py
+      - name: Secret scan
+        run: docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges:true -v "$PWD:/repo:ro" ghcr.io/gitleaks/gitleaks@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f dir /repo --redact --no-banner
+      - name: Frontend deployment failure paths
+        run: python3 -m unittest discover -s tests -p test_frontend_deploy.py
+      - name: Build test images
+        run: docker compose -f deploy/compose.test.yaml build --parallel
+      - name: Backend lint, types and tests
+        run: docker compose -f deploy/compose.test.yaml run --rm backend-test
+      - name: Production operator scripts lint
+        run: docker compose -f deploy/compose.test.yaml run --rm -v "$PWD/deploy/production:/ops:ro" -v "$PWD/tests:/checks:ro" backend-test sh -ec 'ruff check --config /ops/pyproject.toml /ops /checks/production_vector_smoke.py /checks/production_browser_smoke.py /checks/dns_recovery_smoke.py && ruff format --check --config /ops/pyproject.toml /ops /checks/production_vector_smoke.py /checks/production_browser_smoke.py /checks/dns_recovery_smoke.py'
+      - name: Frontend lint, types, tests and build
+        run: docker compose -f deploy/compose.test.yaml run --rm frontend-test
+      - name: Local deploy CLI lint
+        run: docker compose -f deploy/compose.test.yaml run --rm -v "$PWD/scripts:/scripts:ro" -v "$PWD/tests:/checks:ro" -v "$PWD/deploy/production:/ops:ro" backend-test sh -ec 'ruff check --config /ops/pyproject.toml /scripts/deploy.py /checks/test_frontend_deploy.py && ruff format --check --config /ops/pyproject.toml /scripts/deploy.py /checks/test_frontend_deploy.py'
+      - name: Documentation tooling lint
+        run: docker compose -f deploy/compose.test.yaml run --rm -v "$PWD/scripts:/scripts:ro" -v "$PWD/deploy/production:/ops:ro" backend-test sh -ec 'ruff check --config /ops/pyproject.toml /scripts/docs_screenshots.py /scripts/seed_documentation.py /scripts/capture_documentation.py /scripts/check_docs.py /scripts/check_publication.py && ruff format --check --config /ops/pyproject.toml /scripts/docs_screenshots.py /scripts/seed_documentation.py /scripts/capture_documentation.py /scripts/check_docs.py /scripts/check_publication.py'
+      - name: Build and start application
+        run: docker compose up --build --wait --wait-timeout 120
+      - name: Smoke test with authenticated demo delivery
+        run: python3 tests/compose_smoke.py
+      - name: Seed investigation scenario
+        run: docker compose exec -T backend python -m attackscope.demo --run-name morning --scenario investigation
+      - name: Vector configuration and HTTP transport smoke
+        run: python3 tests/vector_smoke.py
+      - name: Production Vector transforms, secrets and buffering
+        run: python3 tests/production_vector_smoke.py
+      - name: UI recovery after backend IP replacement
+        run: |
+          docker tag attackscope-backend:latest attackscope-backend:production-0.1-20261103
+          docker tag attackscope-frontend:latest attackscope-frontend:production-0.1-20261103
+          python3 tests/dns_recovery_smoke.py
+      - name: Browser test image
+        run: docker build -f deploy/browser.Dockerfile -t attackscope-browser-test .
+      - name: Chromium investigation smoke
+        run: docker run --rm --init --network host --shm-size 256m --cap-drop ALL --security-opt no-new-privileges:true -v "$PWD/tests:/tests:ro" attackscope-browser-test /tests/browser_smoke.py
+      - name: Timeline canvas continuity during delayed range requests
+        run: docker run --rm --init --network host --shm-size 256m --cap-drop ALL --security-opt no-new-privileges:true -v "$PWD/tests:/tests:ro" attackscope-browser-test /tests/timeline_navigation_smoke.py
+      - name: Untrusted operator hints and sensitive path evidence
+        run: docker run --rm --init --network host --shm-size 256m --cap-drop ALL --security-opt no-new-privileges:true -v "$PWD/tests:/tests:ro" attackscope-browser-test /tests/operator_hint_smoke.py
+      - name: Private verified backup
+        run: docker compose exec -T backend python -m attackscope.backup --output /data/backups/ci-release.db
+      - name: Container logs
+        if: failure()
+        run: docker compose logs --tail=100
+      - name: Stop application
+        if: always()
+        run: docker compose down

@@ -1,0 +1,54 @@
+data_dir: /var/lib/vector
+sources:
+  journal:
+    type: journald
+    current_boot_only: true
+    emit_cursor: true
+    include_units: [ssh.service, sshd.service]
+transforms:
+  supported:
+    type: filter
+    inputs: [journal]
+    condition: >-
+      match(string!(.message), r'^(Accepted |Failed |Invalid user |Disconnected from |Connection closed by |Received disconnect from )')
+  envelope:
+    type: remap
+    inputs: [supported]
+    drop_on_error: true
+    source: |
+      reference = if exists(.__CURSOR) { sha2(string!(.__CURSOR), variant: "SHA-256") } else { null }
+      . = {"transport_version": 1, "source": "ssh", "source_reference": reference,
+           "payload": {"timestamp": format_timestamp!(.timestamp, format: "%+"),
+                       "journal_message": .message}}
+sinks:
+  attackscope:
+    type: http
+    inputs: [envelope]
+    uri: ${ATTACKSCOPE_INGEST_URL}
+    method: post
+    auth:
+      strategy: bearer
+      token: ${ATTACKSCOPE_SOURCE_TOKEN}
+    encoding:
+      codec: json
+    framing:
+      method: character_delimited
+      character_delimited:
+        delimiter: ','
+    batch:
+      max_events: 100
+      max_bytes: 262144
+      timeout_secs: 1
+    buffer:
+      type: memory
+      max_events: 1000
+      when_full: block
+    request:
+      concurrency: 1
+      rate_limit_num: 3
+      rate_limit_duration_secs: 1
+    tls:
+      verify_certificate: true
+      verify_hostname: true
+    healthcheck:
+      enabled: false

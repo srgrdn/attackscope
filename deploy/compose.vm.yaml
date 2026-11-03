@@ -1,0 +1,42 @@
+# Include AFTER compose.yaml. Requires prebuilt images and a private socket directory.
+# Use --no-build --pull never. No host TCP/UDP ports are published.
+services:
+  backend:
+    build: !reset null
+    image: ${ATTACKSCOPE_BACKEND_IMAGE:?set prebuilt backend image}
+    pull_policy: never
+    mem_limit: 256m
+    cpus: 0.4
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+  frontend:
+    build: !reset null
+    image: ${ATTACKSCOPE_FRONTEND_IMAGE:?set prebuilt frontend image}
+    pull_policy: never
+    ports: !reset []
+    user: "${ATTACKSCOPE_VM_UID:?set socket directory owner UID}:${ATTACKSCOPE_VM_GID:?set socket directory owner GID}"
+    volumes:
+      - type: bind
+        source: ./deploy/nginx-vm-listen.conf
+        target: /etc/nginx/attackscope-listen.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${ATTACKSCOPE_RUN_DIR:?set absolute private socket directory}
+        target: /run/attackscope
+        bind:
+          create_host_path: false
+    mem_limit: 64m
+    cpus: 0.1
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+networks:
+  default:
+    internal: true

@@ -1,0 +1,73 @@
+name: attackscope
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: deploy/backend.Dockerfile
+      target: runtime
+    environment:
+      ATTACKSCOPE_DATABASE_PATH: ${ATTACKSCOPE_DATABASE_PATH:-/data/attackscope.db}
+      ATTACKSCOPE_BIND_HOST: 0.0.0.0
+      ATTACKSCOPE_LOG_LEVEL: ${ATTACKSCOPE_LOG_LEVEL:-info}
+      ATTACKSCOPE_DETAIL_RETENTION_DAYS: ${ATTACKSCOPE_DETAIL_RETENTION_DAYS:-30}
+      ATTACKSCOPE_AGGREGATE_RETENTION_DAYS: ${ATTACKSCOPE_AGGREGATE_RETENTION_DAYS:-365}
+      ATTACKSCOPE_DEDUP_RETENTION_DAYS: ${ATTACKSCOPE_DEDUP_RETENTION_DAYS:-30}
+      ATTACKSCOPE_MAX_BODY_BYTES: ${ATTACKSCOPE_MAX_BODY_BYTES:-1048576}
+      ATTACKSCOPE_MAX_BATCH_EVENTS: ${ATTACKSCOPE_MAX_BATCH_EVENTS:-500}
+      ATTACKSCOPE_MAX_API_CONCURRENCY: ${ATTACKSCOPE_MAX_API_CONCURRENCY:-16}
+      ATTACKSCOPE_SOURCE_REQUESTS_PER_SECOND: ${ATTACKSCOPE_SOURCE_REQUESTS_PER_SECOND:-5}
+      ATTACKSCOPE_SOURCE_BURST: ${ATTACKSCOPE_SOURCE_BURST:-10}
+      ATTACKSCOPE_SOURCE_CONCURRENCY: ${ATTACKSCOPE_SOURCE_CONCURRENCY:-2}
+      ATTACKSCOPE_WRITE_WAIT_SECONDS: ${ATTACKSCOPE_WRITE_WAIT_SECONDS:-0.25}
+      ATTACKSCOPE_QUERY_TIMEOUT_SECONDS: ${ATTACKSCOPE_QUERY_TIMEOUT_SECONDS:-5}
+      ATTACKSCOPE_BODY_TIMEOUT_SECONDS: ${ATTACKSCOPE_BODY_TIMEOUT_SECONDS:-5}
+      ATTACKSCOPE_SSH_WINDOW_SECONDS: ${ATTACKSCOPE_SSH_WINDOW_SECONDS:-300}
+      ATTACKSCOPE_SSH_FAILURE_THRESHOLD: ${ATTACKSCOPE_SSH_FAILURE_THRESHOLD:-10}
+      ATTACKSCOPE_WEB_RATE_WINDOW_SECONDS: ${ATTACKSCOPE_WEB_RATE_WINDOW_SECONDS:-60}
+      ATTACKSCOPE_WEB_REQUEST_THRESHOLD: ${ATTACKSCOPE_WEB_REQUEST_THRESHOLD:-120}
+      ATTACKSCOPE_WEB_PATHS_WINDOW_SECONDS: ${ATTACKSCOPE_WEB_PATHS_WINDOW_SECONDS:-300}
+      ATTACKSCOPE_WEB_PATH_THRESHOLD: ${ATTACKSCOPE_WEB_PATH_THRESHOLD:-30}
+      ATTACKSCOPE_PORT_WINDOW_SECONDS: ${ATTACKSCOPE_PORT_WINDOW_SECONDS:-300}
+      ATTACKSCOPE_PORT_THRESHOLD: ${ATTACKSCOPE_PORT_THRESHOLD:-10}
+    volumes:
+      - attackscope-data:/data
+    mem_limit: ${ATTACKSCOPE_BACKEND_MEMORY_LIMIT:-512m}
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 20s
+    healthcheck:
+      test: [CMD, python, -c, "import urllib.request; [urllib.request.urlopen('http://127.0.0.1:'+str(p)+'/health/ready', timeout=2).close() for p in (8000,8001)]"]
+      interval: 15s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
+  frontend:
+    build:
+      context: .
+      dockerfile: deploy/frontend.Dockerfile
+      target: runtime
+    ports:
+      - "127.0.0.1:${ATTACKSCOPE_UI_PORT:-8180}:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    mem_limit: ${ATTACKSCOPE_FRONTEND_MEMORY_LIMIT:-128m}
+    pids_limit: 128
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/health/live]
+      interval: 15s
+      timeout: 3s
+      retries: 3
+volumes:
+  attackscope-data:

@@ -1,0 +1,8 @@
+# Только фрагмент для ручной адаптации в существующую input chain.
+# НЕ выполняйте как готовый ruleset. Не flush ruleset, не меняет policy.
+# Наблюдает лишь новые TCP SYN не чаще 5/s (burst 10), verdict не назначает.
+# Маркер AS_OBSERVE означает observation, а не DROP.
+# ct state new tcp flags & (syn | ack) == syn limit rate 5/second burst 10 packets log prefix "AS_OBSERVE: "
+# Логирование после лимита не означает отсутствие других пакетов.
+# iptables аналог (ручной выбор chain/позиции):
+# -m conntrack --ctstate NEW -p tcp --syn -m limit --limit 5/second --limit-burst 10 -j LOG --log-prefix "AS_OBSERVE: "

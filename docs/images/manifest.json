@@ -1,0 +1,90 @@
+{
+  "host_id": "1c85521f-474c-443a-a89b-bc67dd6ba5fd",
+  "base_time": "2026-11-03T09:24:27+00:00",
+  "cloud_time": "2026-11-03T09:16:00+00:00",
+  "events": 2093,
+  "synthetic": true,
+  "source_commit": "a44edf5db862e50118091cc8935713ab6078cc9b",
+  "source_tree_dirty": true,
+  "captured_at_utc": "2026-11-03T09:25:14.435007+00:00",
+  "application_origin": "http://127.0.0.1:18182",
+  "viewport": {
+    "width": 1440,
+    "height": 1100
+  },
+  "screenshots": [
+    {
+      "file": "01-timeline-overview.png",
+      "description": "Timeline: aggregated synthetic observations",
+      "simulated_api_error": false,
+      "sha256": "75ae61074d3dac97f687e40fcb5a7670fc6e70ea5cb4db1ee53488abbc29eada"
+    },
+    {
+      "file": "02-timeline-filtered.png",
+      "description": "Timeline: six credential probes for a reserved IP",
+      "simulated_api_error": false,
+      "sha256": "51685926da01943a1356d2f97ad9e1fb8fdc178f834324e70a4e19deb362fdd5"
+    },
+    {
+      "file": "03-event-explorer.png",
+      "description": "Event Explorer: time/IP/source filters and export",
+      "simulated_api_error": false,
+      "sha256": "54ff39c265348fe4ee7c3327c551cb3eed25939fc8e52dc6e1508394fc6e8a83"
+    },
+    {
+      "file": "04-event-detail.png",
+      "description": "Safe event projection; query values were removed",
+      "simulated_api_error": false,
+      "sha256": "0d624ab4c91a26432840f2581fb45790f346ea94dd8b34bbc472b84167340698"
+    },
+    {
+      "file": "06-ip-explorer.png",
+      "description": "IP Explorer: synthetic IP history and distributions",
+      "simulated_api_error": false,
+      "sha256": "14646f325414daefefae07b0b791dbd3d2a80236513de97fd47239ba2e520642"
+    },
+    {
+      "file": "05-finding-detail.png",
+      "description": "Sensitive path v2: six matches and evidence",
+      "simulated_api_error": false,
+      "sha256": "d260f847cea39d4ecd9358bc1290ab42273251bb11334a7be03243db336612f5"
+    },
+    {
+      "file": "07-overview.png",
+      "description": "Overview: all events versus rule-classified observations",
+      "simulated_api_error": false,
+      "sha256": "6c016149ee23a122c94fabe171b1755549937a6c662f37305ef7bec66f53e780"
+    },
+    {
+      "file": "08-history.png",
+      "description": "Historical analysis: full UTC-hour coverage",
+      "simulated_api_error": false,
+      "sha256": "38497d99517a25d38c29f296acca017a6394c4adc26b86fa0d51e1095780721d"
+    },
+    {
+      "file": "09-operator-check.png",
+      "description": "Unverified User-Agent hint; observation remains included",
+      "simulated_api_error": false,
+      "sha256": "df0581407a58c3c90e6fe224915f2c45ae0cdac8b18a83a9849bb500c1bafc25"
+    },
+    {
+      "file": "10-empty-state.png",
+      "description": "Empty filtered range; not proof of no network traffic",
+      "simulated_api_error": false,
+      "sha256": "ff920d8baadcc7357777023db2d7baa2d629a846da85e8f8253e4b5b4c3f9ad7"
+    },
+    {
+      "file": "11-api-error.png",
+      "description": "Actual UI error state with browser-simulated HTTP503",
+      "simulated_api_error": true,
+      "sha256": "3c4c728a446d4433e1b6a2dcbcb59b516c77ded637ecea45978e1382e02699aa"
+    },
+    {
+      "file": "12-mobile-timeline.png",
+      "description": "Timeline on a narrow viewport",
+      "simulated_api_error": false,
+      "sha256": "27056a3b2801d445fdcb79cd490cb416128f207d76c942a3aaee02c88a1909a8"
+    }
+  ],
+  "publication_note": "Captured before public history initialization; synthetic data only."
+}

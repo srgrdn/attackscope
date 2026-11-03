@@ -1,0 +1,25 @@
+name: attackscope-tests
+services:
+  backend-test:
+    build:
+      context: ..
+      dockerfile: deploy/backend.Dockerfile
+      target: test
+    tmpfs:
+      - /tmp:rw,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      RUFF_CACHE_DIR: /tmp/ruff
+      MYPY_CACHE_DIR: /tmp/mypy
+    command: [sh, -ec, "ruff check . && ruff format --check . && mypy && python -m pytest -p no:cacheprovider"]
+  frontend-test:
+    build:
+      context: ..
+      dockerfile: deploy/frontend.Dockerfile
+      target: test
+    tmpfs:
+      - /tmp:rw,nosuid,size=128m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [sh, -ec, "npm run lint && npm run format:check && npm run typecheck && npm test && npm run build -- --outDir /tmp/dist"]

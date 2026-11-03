@@ -1,0 +1,49 @@
+# Include after compose.yaml and deploy/compose.vm.yaml.
+services:
+  collector:
+    image: timberio/vector:0.61.0-debian@sha256:f6c23b5a7e16fb2838d33619ef7acf4bad2289a7cf22bc90efc2371f520c4ea2
+    pull_policy: never
+    user: "10003:10003"
+    group_add: ["${ATTACKSCOPE_JOURNAL_GID:?set host systemd-journal GID}"]
+    command: [--config, /etc/vector/vector.yaml]
+    environment:
+      VECTOR_LOG: warn
+    volumes:
+      - type: bind
+        source: ./deploy/production/vector.yaml
+        target: /etc/vector/vector.yaml
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${ATTACKSCOPE_COLLECTOR_STATE:?set private collector state path}
+        target: /var/lib/vector
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${ATTACKSCOPE_COLLECTOR_SECRETS:?set private sources JSON file}
+        target: /run/secrets/sources.json
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: /run/log/journal
+        target: /run/log/journal
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${ATTACKSCOPE_HTTP_LOG_DIR:?set dedicated JSON access log directory}
+        target: /var/log/attackscope
+        read_only: true
+        bind: {create_host_path: false}
+    depends_on:
+      backend: {condition: service_healthy}
+    mem_limit: 192m
+    cpus: 0.15
+    pids_limit: 64
+    read_only: true
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=16m"]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+    stop_grace_period: 30s
+    logging:
+      driver: json-file
+      options: {max-size: 10m, max-file: "3"}

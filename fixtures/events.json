@@ -1,0 +1,10 @@
+[
+  {"source":"ssh","source_reference":"demo:v1:ssh:1","offset_seconds":-300,"payload":{"src_ip":"192.0.2.10","dst_port":22,"protocol":"tcp","outcome":"failure","username":"demo-user"}},
+  {"source":"ssh","source_reference":"demo:v1:ssh:2","offset_seconds":-240,"payload":{"src_ip":"2001:db8::10","dst_port":22,"protocol":"tcp","outcome":"success","username":"demo-user"}},
+  {"source":"ssh","source_reference":"demo:v1:ssh:3","offset_seconds":-210,"payload":{"src_ip":"192.0.2.10","outcome":"disconnect"}},
+  {"source":"http","source_reference":"demo:v1:http:1","offset_seconds":-180,"payload":{"remote_addr":"198.51.100.20","request_method":"GET","path":"/.env?token=not-a-real-secret","status":404,"user_agent":"AttackScope demo","dst_port":443,"protocol":"tcp","duration_ms":12.5,"Authorization":"discard-this","Cookie":"discard-this"}},
+  {"source":"http","source_reference":"demo:v1:http:2","offset_seconds":-120,"payload":{"remote_addr":"2001:db8::20","request_method":"GET","path":"/missing-image.png","status":404,"user_agent":"Demo browser"}},
+  {"source":"http","source_reference":"demo:v1:http:3","offset_seconds":-90,"payload":{"remote_addr":"198.51.100.20","request_method":"GET","path":"/","status":200,"duration_ms":4}},
+  {"source":"firewall","source_reference":"demo:v1:firewall:1","offset_seconds":-60,"payload":{"src_ip":"203.0.113.30","dst_ip":"192.0.2.100","src_port":49000,"dst_port":2222,"protocol":"tcp","action":"drop","interface":"eth0"}},
+  {"source":"firewall","source_reference":"demo:v1:firewall:2","offset_seconds":-30,"payload":{"src_ip":"2001:db8::30","protocol":"icmpv6"}}
+]

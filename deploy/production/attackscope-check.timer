@@ -1,0 +1,10 @@
+[Unit]
+Description=AttackScope availability and backup checks
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=attackscope-maintenance@check.service
+
+[Install]
+WantedBy=timers.target

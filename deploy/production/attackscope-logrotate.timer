@@ -1,0 +1,10 @@
+[Unit]
+Description=Check dedicated AttackScope HTTP log size every five minutes
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+Unit=attackscope-maintenance@rotate.service
+
+[Install]
+WantedBy=timers.target

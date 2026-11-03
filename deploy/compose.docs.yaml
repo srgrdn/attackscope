@@ -1,0 +1,16 @@
+# Isolated screenshots only; invoke with -p attackscope-docs and docs.env.example.
+services:
+  backend:
+    image: attackscope-docs-backend:local
+    environment:
+      ATTACKSCOPE_DOCUMENTATION_MODE: "1"
+      ATTACKSCOPE_DATABASE_PATH: /data/attackscope.db
+    volumes: !reset []
+    tmpfs: !override
+      - /tmp:rw,noexec,nosuid,size=16m
+      - /data:rw,noexec,nosuid,size=128m,uid=10001,gid=10001,mode=0700
+  frontend:
+    image: attackscope-docs-frontend:local
+    ports: !override
+      - "127.0.0.1:18182:8080"
+volumes: !reset {}

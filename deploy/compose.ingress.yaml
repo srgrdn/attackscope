@@ -1,0 +1,24 @@
+# Optional TLS ingestion only. Include AFTER compose.yaml; never enabled by default.
+services:
+  tls-ingress:
+    image: nginx:stable-alpine@sha256:0e52bd054126cdc040b1276c0af347aeb02a41b9cfe305d6094767ac30e97949
+    user: "${ATTACKSCOPE_TLS_UID:-1000}:${ATTACKSCOPE_TLS_GID:-1000}"
+    entrypoint: [nginx]
+    command: [-g, "daemon off;"]
+    ports:
+      - "${ATTACKSCOPE_INGEST_BIND:-127.0.0.1}:${ATTACKSCOPE_INGEST_PORT:-8443}:8443"
+    volumes:
+      - ./deploy/ingress-tls.conf:/etc/nginx/nginx.conf:ro
+      - ${ATTACKSCOPE_TLS_CERT_FILE:?set certificate path}:/run/tls/cert.pem:ro
+      - ${ATTACKSCOPE_TLS_KEY_FILE:?set private key path}:/run/tls/key.pem:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=16m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 64m
+    pids_limit: 64
+    restart: unless-stopped

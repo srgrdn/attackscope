@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily verified AttackScope backup
+
+[Timer]
+OnCalendar=*-*-* 03:30:00 UTC
+RandomizedDelaySec=5min
+Persistent=true
+Unit=attackscope-maintenance@backup.service
+
+[Install]
+WantedBy=timers.target

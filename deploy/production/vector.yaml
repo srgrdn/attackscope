@@ -1,0 +1,136 @@
+# Example SSH destination port is 22; set the actual observed server port before use.
+data_dir: /var/lib/vector
+acknowledgements:
+  enabled: true
+secret:
+  source_tokens:
+    type: file
+    path: /run/secrets/sources.json
+sources:
+  ssh:
+    type: journald
+    # The pinned Debian image uses systemd257; Vector rejects all-boot reads there.
+    # This VM keeps journals in /run, so only the current boot is available anyway.
+    current_boot_only: true
+    since_now: true
+    emit_cursor: true
+    include_units: [sshd.service, ssh.service]
+  nginx:
+    type: file
+    include: [/var/log/attackscope/access.json]
+    read_from: beginning
+    max_line_bytes: 32768
+transforms:
+  ssh_normalized:
+    type: remap
+    inputs: [ssh]
+    drop_on_error: true
+    drop_on_abort: true
+    source: |
+      message = string!(.message)
+      if length(message) > 8192 { abort }
+      parsed, err = parse_regex(message, r'^(?P<verb>Accepted|Failed) (?:password|publickey|keyboard-interactive/pam) for (?:(?P<invalid>invalid user) )?(?P<username>\S{1,128}) from (?P<ip>[0-9a-fA-F:.]{2,45}) port (?P<port>[0-9]{1,5})(?: |$)')
+      outcome = "failure"
+      if err == null {
+        if parsed.verb == "Accepted" { outcome = "success" } else if parsed.invalid != null { outcome = "invalid_user" }
+      } else {
+        parsed, err = parse_regex(message, r'^Invalid user (?P<username>\S{1,128}) from (?P<ip>[0-9a-fA-F:.]{2,45})(?: port (?P<port>[0-9]{1,5}))?')
+        outcome = "invalid_user"
+        if err != null {
+          parsed, err = parse_regex(message, r'^(?:Disconnected from|Connection closed by|Received disconnect from) (?:(?:authenticating user|invalid user|user) \S{1,128} )?(?P<ip>[0-9a-fA-F:.]{2,45})(?:(?: port |:)(?P<port>[0-9]{1,5}))?')
+          outcome = "disconnect"
+        }
+      }
+      if err != null { abort }
+      ip = string!(parsed.ip)
+      if !is_ipv4(ip) && !is_ipv6(ip) { abort }
+      port = if parsed.port != null { to_int!(parsed.port) } else { null }
+      numeric_port = to_int(port)
+      if numeric_port < 0 || numeric_port > 65535 { abort }
+      reference = if exists(.__CURSOR) { sha2(string!(.__CURSOR), variant: "SHA-256") } else { null }
+      . = {"transport_version": 1, "source": "ssh", "source_reference": reference,
+        "payload": {"timestamp": format_timestamp!(.timestamp, format: "%+"),
+        "src_ip": ip, "src_port": port, "dst_port": 22, "protocol": "tcp",
+        "outcome": outcome}}
+  http_normalized:
+    type: remap
+    inputs: [nginx]
+    drop_on_error: true
+    drop_on_abort: true
+    source: |
+      p = parse_json!(string!(.message))
+      ip = string!(p.remote_addr)
+      if !is_ipv4(ip) && !is_ipv6(ip) { abort }
+      path = string!(split(string!(p.path), "?")[0])
+      path = string!(split(path, "#")[0])
+      if !starts_with(path, "/") { abort }
+      method = string!(p.request_method)
+      if !match(method, r'^[!#$%&\x27*+.^_`|~0-9A-Za-z-]{1,32}$') { abort }
+      short_path = truncate(path, limit: 2048, suffix: "")
+      # truncate counts Unicode characters; the backend's path bound is bytes.
+      if length(short_path) > 2048 { short_path = truncate(short_path, limit: 512, suffix: "") }
+      . = {"transport_version": 1, "source": "http", "source_reference": string!(p.request_id),
+        "payload": {"timestamp": p.timestamp, "remote_addr": ip,
+        "hostname": truncate(string!(p.hostname), limit: 253, suffix: ""),
+        "request_method": method, "path": short_path,
+        "path_truncated": length(path) > length(short_path),
+        "status": to_int!(p.status), "dst_port": to_int!(p.dst_port),
+        "duration_ms": to_float!(p.duration_seconds) * 1000.0,
+        "user_agent": truncate(string!(p.user_agent), limit: 512, suffix: "")}}
+sinks:
+  ssh_delivery:
+    type: http
+    inputs: [ssh_normalized]
+    uri: http://backend:8001/api/v1/ingest/events
+    method: post
+    auth:
+      strategy: bearer
+      token: SECRET[source_tokens.ssh]
+    encoding:
+      codec: json
+    framing:
+      method: character_delimited
+      character_delimited:
+        delimiter: ','
+    batch:
+      max_events: 50
+      max_bytes: 131072
+      timeout_secs: 1
+    buffer:
+      type: disk
+      max_size: 268435488
+      when_full: block
+    request:
+      concurrency: 1
+      rate_limit_num: 3
+      rate_limit_duration_secs: 1
+    healthcheck:
+      enabled: false
+  http_delivery:
+    type: http
+    inputs: [http_normalized]
+    uri: http://backend:8001/api/v1/ingest/events
+    method: post
+    auth:
+      strategy: bearer
+      token: SECRET[source_tokens.http]
+    encoding:
+      codec: json
+    framing:
+      method: character_delimited
+      character_delimited:
+        delimiter: ','
+    batch:
+      max_events: 50
+      max_bytes: 131072
+      timeout_secs: 1
+    buffer:
+      type: disk
+      max_size: 268435488
+      when_full: block
+    request:
+      concurrency: 1
+      rate_limit_num: 3
+      rate_limit_duration_secs: 1
+    healthcheck:
+      enabled: false
