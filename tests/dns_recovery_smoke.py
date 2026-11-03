@@ -68,7 +68,7 @@ with tempfile.TemporaryDirectory(prefix="attackscope-dns-") as directory:
             "--memory",
             "64m",
             "--user",
-            "1000:1000",
+            f"{os.getuid()}:{os.getgid()}",
             "-v",
             directory + ":/run/attackscope",
             "-v",

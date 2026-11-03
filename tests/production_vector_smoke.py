@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+import os
 import subprocess
 import tempfile
 import threading
@@ -110,7 +111,7 @@ transforms:
             "--network",
             "host",
             "--user",
-            "1000:1000",
+            f"{os.getuid()}:{os.getgid()}",
             "--read-only",
             "--tmpfs",
             "/tmp:rw,noexec,nosuid,size=768m",

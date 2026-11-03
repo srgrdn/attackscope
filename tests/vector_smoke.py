@@ -1,6 +1,7 @@
 """Actual Vector HTTP encoding check using synthetic Nginx input only."""
 
 import json
+import os
 import subprocess
 import tempfile
 import threading
@@ -59,7 +60,7 @@ with (
             "--network",
             "host",
             "--user",
-            "1000:1000",
+            f"{os.getuid()}:{os.getgid()}",
             "--cap-drop",
             "ALL",
             "--security-opt",
